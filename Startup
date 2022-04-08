@@ -1,0 +1,93 @@
+  public void ConfigureServices(IServiceCollection services)
+        {
+
+            services.AddControllers();
+            services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "EgeLab.WebAPI", Version = "v1" });
+            });
+
+
+            //add EgeLabDbContext
+            services.AddDbContext<EgeLabDbContext>(options =>
+                  options.UseSqlServer(Configuration.GetConnectionString("AppConnection"),
+                  b => b.MigrationsAssembly("EgeLab.WebAPI")),
+                  ServiceLifetime.Transient);
+
+            #region Identity
+            
+            services.AddDbContext<AppIdentityDbContext>(options =>
+                    options.UseSqlServer(Configuration.GetConnectionString("AppConnection"),
+                    b => b.MigrationsAssembly("EgeLab.WebAPI")),
+                    ServiceLifetime.Transient);
+
+
+            //bu asssembly e gerek kalmadan ps ile çözdük
+            services.AddIdentity<EgeLabUser, IdentityRole>()
+                .AddEntityFrameworkStores<AppIdentityDbContext>()
+                .AddDefaultTokenProviders();
+            services.Configure<IdentityOptions>(options =>
+            {
+                options.Password.RequireDigit = true;
+                options.Password.RequireNonAlphanumeric = true;
+                options.Password.RequireLowercase = true;
+                options.Password.RequireUppercase = true;
+                options.Password.RequiredLength = 6;
+
+                options.User.RequireUniqueEmail = true;
+            }
+            );
+
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+
+            services.AddCors();
+            services.AddControllers().AddNewtonsoftJson(options =>
+                         options.SerializerSettings.ContractResolver = new DefaultContractResolver()
+            );
+
+            var key = Encoding.UTF8.GetBytes(Configuration["ApplicationSettings:JWT_Secret"].ToString());
+            services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+
+            })
+                .AddJwtBearer(x =>
+                {
+                    x.RequireHttpsMetadata = false;
+                    x.SaveToken = false;
+                    x.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+                    {
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(key),
+                        ValidateIssuer = false,
+                        ValidateAudience = false,
+                        ClockSkew = TimeSpan.Zero
+                    };
+                });
+            #endregion
+
+            #region business
+            services.AddTransient<IJobService, JobService>();
+            services.AddTransient<IRoleService, RoleService>();
+            services.AddTransient<IUserService, UserService>();
+            services.AddTransient<IDomainService, DomainService>();
+            services.AddTransient<IPermissionService, PermissionService>();
+            services.AddTransient<IExperimentService, ExperimentService>();
+            services.AddTransient<IExperimentPropertyService, ExperimentPropertyService>(); 
+            services.AddTransient<IExperimentPropertySnippet,ExperimentPropertySnippet>();
+            services.AddTransient<ISampleService, SampleService>(); 
+            services.AddTransient<IQRCodeService, QRCodeService>();
+            services.AddTransient<ILookupService, LookupService>(); 
+            services.AddTransient<IProjectService, ProjectService>();   
+            services.AddTransient<IProfileService, ProfileService>();
+            services.AddTransient<IDishService, DishService>();    
+            services.AddTransient<ISampleAction, SampleAction>();
+            services.AddTransient<ISampleExperimentService, SampleExperimentService>(); 
+            services.AddTransient<ISampleActiveList, SampleActiveList>();
+            services.AddTransient<ILoggerActionService, LoggerActionService>();
+            services.AddTransient<ISampleValueService, SampleValueService>();
+            #endregion
+
+        }
