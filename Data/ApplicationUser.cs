@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Identity;
 
-namespace IdentityWT.Data
+namespace JWT.Data
 {
     public class ApplicationUser : IdentityUser
     {
+
     }
 }
